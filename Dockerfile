@@ -1,14 +1,44 @@
-FROM alpine:3.6
+FROM cleardevice/docker-alpine-s6-main
 
 MAINTAINER cd <cleardevice@gmail.com>
 
-ENV TERM=xterm
-RUN apk add --no-cache bash git wget curl nano ca-certificates && \
-    rm -rf /var/cache/apk/*
+# Nginx version
+ENV NGINX_VERSION=1.13.6 NGINX_HOME=/usr/share/nginx REDIS_NGINX_MODULE=0.3.9
 
-ENV S6_VER=1.21.2.1
+RUN apk add --no-cache openssl-dev zlib-dev pcre-dev build-base autoconf automake libtool && \
+    cd /tmp && git clone https://github.com/google/ngx_brotli.git && \
+    cd /tmp/ngx_brotli && git submodule update --init && \
+    cd /tmp && git clone https://github.com/bagder/libbrotli.git && \
+    cd /tmp/libbrotli && ./autogen.sh && ./configure && make && \
+    # redis-nginx-module
+    curl -Ls https://github.com/onnimonni/redis-nginx-module/archive/v${REDIS_NGINX_MODULE}.tar.gz | tar -xz -C /tmp && \
+    # nginx
+    curl -Ls http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar -xz -C /tmp && \
+    cd /tmp/nginx-${NGINX_VERSION} && \
+    ./configure \
+        --with-debug \
+        --with-ipv6 \
+        --with-http_ssl_module \
+        --with-http_gzip_static_module \
+        --with-http_v2_module \
+        --with-http_realip_module \
+        --with-stream \
+        --with-stream_ssl_preread_module \
+        --add-module=/tmp/redis-nginx-module-${REDIS_NGINX_MODULE} \
+        --add-module=/tmp/ngx_brotli \
+        --prefix=${NGINX_HOME} \
+        --conf-path=/etc/nginx/nginx.conf \
+        --http-log-path=/var/log/nginx/access.log \
+        --error-log-path=/var/log/nginx/error.log \
+        --pid-path=/var/run/nginx.pid \
+        --sbin-path=/usr/sbin/nginx && \
+    make && \
+    make install && mkdir -p /etc/nginx/conf.d && \
+    apk del build-base autoconf automake libtool && \
+    rm -rf /tmp/* && rm -rf /var/cache/apk/*
 
-ADD https://github.com/just-containers/s6-overlay/releases/download/v${S6_VER}/s6-overlay-amd64.tar.gz /tmp/
-RUN tar xzf /tmp/s6-overlay-amd64.tar.gz -C /
+# Forward request and error logs to docker log collector
+RUN ln -sf /dev/stdout /var/log/nginx/access.log
+RUN ln -sf /dev/stderr /var/log/nginx/error.log
 
-ENTRYPOINT ["/init"]
+EXPOSE 80 443
