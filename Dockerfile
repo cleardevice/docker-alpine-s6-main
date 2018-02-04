@@ -12,9 +12,12 @@ RUN apk add --no-cache openssl-dev zlib-dev pcre-dev build-base autoconf automak
     cd /tmp/libbrotli && ./autogen.sh && ./configure && make && \
     # redis-nginx-module
     curl -Ls https://github.com/onnimonni/redis-nginx-module/archive/v${REDIS_NGINX_MODULE}.tar.gz | tar -xz -C /tmp && \
+    # ngx_aws_auth module
+    cd /tmp && git clone -b AuthV2 https://github.com/anomalizer/ngx_aws_auth.git && \
     # nginx
     curl -Ls http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar -xz -C /tmp && \
     cd /tmp/nginx-${NGINX_VERSION} && \
+    # configure
     ./configure \
         --with-debug \
         --with-ipv6 \
@@ -26,6 +29,7 @@ RUN apk add --no-cache openssl-dev zlib-dev pcre-dev build-base autoconf automak
         --with-stream_ssl_preread_module \
         --add-module=/tmp/redis-nginx-module-${REDIS_NGINX_MODULE} \
         --add-module=/tmp/ngx_brotli \
+        --add-module=/tmp/ngx_aws_auth \
         --prefix=${NGINX_HOME} \
         --conf-path=/etc/nginx/nginx.conf \
         --http-log-path=/var/log/nginx/access.log \
