@@ -3,7 +3,7 @@ FROM cleardevice/docker-alpine-s6-main
 MAINTAINER cd <cleardevice@gmail.com>
 
 # Nginx version
-ENV NGINX_VERSION=1.13.8 NGINX_HOME=/usr/share/nginx REDIS_NGINX_MODULE=0.3.9
+ENV NGINX_VERSION=1.13.9 NGINX_HOME=/usr/share/nginx REDIS_NGINX_MODULE=0.3.9
 
 RUN apk add --no-cache openssl-dev zlib-dev pcre-dev build-base autoconf automake libtool && \
     cd /tmp && git clone https://github.com/google/ngx_brotli.git && \
