@@ -3,18 +3,21 @@ FROM cleardevice/docker-alpine-s6-main
 MAINTAINER cd <cleardevice@gmail.com>
 
 # Nginx version
-ENV NGINX_VERSION=1.13.9 NGINX_HOME=/usr/share/nginx REDIS_NGINX_MODULE=0.3.9 LUA_NGINX_MODULE=0.10.12rc2 LUA_ROCKS=2.4.3
+ENV NGINX_VERSION=1.13.9 NGINX_HOME=/usr/share/nginx REDIS_NGINX_MODULE=0.3.9 NGINX_DEVEL_KIT_MODULE=0.3.1rc1 \
+    LUA_NGINX_MODULE=0.10.12rc2 LUA_ROCKS=2.4.3
 
 RUN apk add --no-cache openssl-dev zlib-dev pcre-dev build-base autoconf automake libtool && \
     cd /tmp && git clone https://github.com/google/ngx_brotli.git && \
     cd /tmp/ngx_brotli && git submodule update --init && \
     cd /tmp && git clone https://github.com/bagder/libbrotli.git && \
     cd /tmp/libbrotli && ./autogen.sh && ./configure && make && \
+    # nginx_devel_kit
+    curl -Ls https://github.com/simplresty/ngx_devel_kit/archive/v${NGINX_DEVEL_KIT_MODULE}.tar.gz | tar -xz -C /tmp && \
     # luajit-2.0
     cd /tmp && git clone http://luajit.org/git/luajit-2.0.git && \
     cd /tmp/luajit-2.0 && make && make install && \
     # luarocks
-    curl -Ls http://luarocks.github.io/luarocks/releases/luarocks-${LUA_ROCKS}.tar.gz  | tar -xz -C /tmp && \
+    curl -Ls http://luarocks.github.io/luarocks/releases/luarocks-${LUA_ROCKS}.tar.gz | tar -xz -C /tmp && \
     cd /tmp/luarocks-${LUA_ROCKS} && ./configure --lua-suffix=jit --with-lua=/usr/local --with-lua-include=/usr/local/include/luajit-2.0 && \
     make build && make install && \
     # lua_nginx_module
@@ -40,6 +43,7 @@ RUN apk add --no-cache openssl-dev zlib-dev pcre-dev build-base autoconf automak
         --add-module=/tmp/redis-nginx-module-${REDIS_NGINX_MODULE} \
         --add-module=/tmp/ngx_brotli \
         --add-module=/tmp/ngx_aws_auth \
+        --add-module=/tmp/ngx_devel_kit-${NGINX_DEVEL_KIT_MODULE} \
         --add-module=/tmp/lua_nginx_moudle \
         --prefix=${NGINX_HOME} \
         --conf-path=/etc/nginx/nginx.conf \
