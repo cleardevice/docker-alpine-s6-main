@@ -1,4 +1,4 @@
-FROM cleardevice/docker-alpine-s6-main
+FROM cleardevice/docker-alpine-s6-main:alpine-3.7
 
 MAINTAINER cd <cleardevice@gmail.com>
 
