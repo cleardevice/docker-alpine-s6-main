@@ -3,15 +3,21 @@ FROM cleardevice/docker-alpine-s6-main
 MAINTAINER cd <cleardevice@gmail.com>
 
 # Nginx version
-ENV NGINX_VERSION=1.13.9 NGINX_HOME=/usr/share/nginx REDIS_NGINX_MODULE=0.3.9 LUA_NGINX_MODULE=0.10.12rc2
+ENV NGINX_VERSION=1.13.9 NGINX_HOME=/usr/share/nginx REDIS_NGINX_MODULE=0.3.9 LUA_NGINX_MODULE=0.10.12rc2 LUA_ROCKS=2.4.3
 
-RUN apk add --no-cache openssl-dev zlib-dev pcre-dev build-base autoconf automake libtool luarocks && \
+RUN apk add --no-cache openssl-dev zlib-dev pcre-dev build-base autoconf automake libtool && \
     cd /tmp && git clone https://github.com/google/ngx_brotli.git && \
     cd /tmp/ngx_brotli && git submodule update --init && \
     cd /tmp && git clone https://github.com/bagder/libbrotli.git && \
     cd /tmp/libbrotli && ./autogen.sh && ./configure && make && \
+    # luajit-2.0
     cd /tmp && git clone http://luajit.org/git/luajit-2.0.git && \
     cd /tmp/luajit-2.0 && make && make install && \
+    # luarocks
+    curl -Ls http://luarocks.github.io/luarocks/releases/luarocks-${LUA_ROCKS}.tar.gz  | tar -xz -C /tmp && \
+    cd /tmp/luarocks-${LUA_ROCKS} && ./configure --lua-suffix=jit --with-lua=/usr/local --with-lua-include=/usr/local/include/luajit-2.0 && \
+    make build && make install && \
+    # lua_nginx_module
     mkdir /tmp/lua_nginx_moudle && \
     curl -Ls https://github.com/openresty/lua-nginx-module/archive/v${LUA_NGINX_MODULE}.tar.gz | tar -xz -C /tmp/lua_nginx_moudle --strip-components=1 && \
     # redis-nginx-module
@@ -44,8 +50,9 @@ RUN apk add --no-cache openssl-dev zlib-dev pcre-dev build-base autoconf automak
     make && \
     make install && mkdir -p /etc/nginx/conf.d && \
     apk del build-base autoconf automake libtool && \
-    luarocks install uuid && \
     rm -rf /tmp/* && rm -rf /var/cache/apk/*
+
+RUN luarocks install uuid
 
 # Forward request and error logs to docker log collector
 RUN ln -sf /dev/stdout /var/log/nginx/access.log
